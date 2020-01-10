@@ -1,5 +1,5 @@
 %global checkout 6d51311
-%global zrelease 1
+%global zrelease 2
 %global firmware_release 62.%{zrelease}
 
 Name:		linux-firmware
@@ -386,6 +386,9 @@ rm -rf $RPM_BUILD_ROOT
 %doc WHENCE LICENCE.* LICENSE.*
 
 %changelog
+* Wed Jun 06 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> 20180220-62.2.git6d51311
+- amd: update microcode for family 15h v2018-05-24 (rhbz 1585939)
+
 * Tue May 22 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> 20180220-62.1.git6d51311
 - amd: add microcode for family 17h and update for family 15h (rhbz 1576321)
 
