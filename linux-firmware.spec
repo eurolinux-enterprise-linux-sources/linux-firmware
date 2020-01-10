@@ -1,8 +1,8 @@
-%global checkout 85c5d90
-%global firmware_release 69
+%global checkout ddde598
+%global firmware_release 72
 
 Name:		linux-firmware
-Version:	20180911
+Version:	20190429
 Release:	%{firmware_release}.git%{checkout}%{?dist}
 Summary:	Firmware files used by the Linux kernel
 
@@ -258,9 +258,6 @@ rm -rf vxge
 # Remove the check_whence.py file
 rm -f check_whence.py
 
-# Remove LiquidIO firmware that violates GPL license (BZ 1637696)
-rm -f liquidio/lio_23xx_vsw.bin
-
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT%{fwdir}
@@ -275,9 +272,9 @@ find . \! -type d > $FILEDIR/linux-firmware.files
 find . -type d | sed -e '/^.$/d' > $FILEDIR/linux-firmware.dirs
 popd
 sed -i -e 's:^./::' linux-firmware.{files,dirs}
-sed -i -e '/^iwlwifi/d' \
-	linux-firmware.files
+sed -i -e '/^iwlwifi/d' linux-firmware.files
 sed -i -e 's/^/\/usr\/lib\/firmware\//' linux-firmware.{files,dirs}
+sed -i -e 's/\(.*\s.*\)/"\1"/' linux-firmware.files
 sed -e 's/^/%%dir /' linux-firmware.dirs >> linux-firmware.files
 
 %post
@@ -396,6 +393,24 @@ rm -rf $RPM_BUILD_ROOT
 %doc WHENCE LICENCE.* LICENSE.*
 
 %changelog
+* Mon Apr 29 2019 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20190429-72.gitddde598
+- Update to latest upstream linux-firmware image for assorted updates
+- cxgb4: update firmware to revision 1.23.4.0 (rhbz 1690727)
+- linux-firmware: Add firmware file for Intel Bluetooth 22161 (rhbz 1622438)
+
+* Mon Mar 18 2019 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20190318-71.git283373f
+- Update to latest upstream linux-firmware image for assorted updates
+- cxgb4: update firmware to revision 1.23.3.0 (rhbz 1642422)
+
+* Tue Feb 26 2019 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20190225-70.git80dee31
+- cxgb4: update firmware to revision 1.22.9.0 (rhbz 1671610)
+- nfp: update Agilio SmartNIC flower firmware to rev AOTC-2.10.A.13 (rhbz 1637996)
+- linux-firmware: Update firmware patch for Intel Bluetooth 8260 (rhbz 1649148)
+- qed: Add 8.37.7.0 firmware image (rhbz 1654809)
+- liquidio: fix GPL compliance issue (rhbz 1622521)
+- Update Intel OPA hfi1 firmware (rhbz 1637240)
+- qed: Add firmware 8.37.7.0 (rhbz 1643554)
+
 * Tue Oct 09 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180911-69.git85c5d90
 - liquidio: remove firmware that violates GPL license (rhbz 1637696)
 
