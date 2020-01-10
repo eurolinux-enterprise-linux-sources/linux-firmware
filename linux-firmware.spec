@@ -1,8 +1,8 @@
-%global checkout 6d51311
-%global firmware_release 62
+%global checkout 85c5d90
+%global firmware_release 69
 
 Name:		linux-firmware
-Version:	20180220
+Version:	20180911
 Release:	%{firmware_release}.git%{checkout}%{?dist}
 Summary:	Firmware files used by the Linux kernel
 
@@ -30,10 +30,6 @@ Obsoletes:	libertas-usb8388-firmware
 Obsoletes:	libertas-sd8686-firmware
 Obsoletes:	libertas-sd8787-firmware
 Obsoletes: 	libertas-usb8388-olpc-firmware
-
-# REDHAT-DISCLAIMER on u-code updates (rhbz 1533945)
-Requires(post): coreutils
-Source1: REDHAT-DISCLAIMER
 
 %define fwdir /usr/lib/firmware
 %define _binaries_in_noarch_packages_terminate_build   0
@@ -262,8 +258,8 @@ rm -rf vxge
 # Remove the check_whence.py file
 rm -f check_whence.py
 
-# REDHAT-DISCLAIMER on u-code updates
-install %{SOURCE1} ./
+# Remove LiquidIO firmware that violates GPL license (BZ 1637696)
+rm -f liquidio/lio_23xx_vsw.bin
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -284,22 +280,20 @@ sed -i -e '/^iwlwifi/d' \
 sed -i -e 's/^/\/usr\/lib\/firmware\//' linux-firmware.{files,dirs}
 sed -e 's/^/%%dir /' linux-firmware.dirs >> linux-firmware.files
 
+%post
+# This pkg carries AMD microcode and it's important to early enable it in
+# case it was updated. Because of that rebuild initrd after this pkg is 
+# updated and only if it's an AMD CPU.
+if [ $1 -gt 1 ]; then
+	if [ -d /run/systemd/system ]; then
+		if grep -q AuthenticAMD /proc/cpuinfo ; then
+			dracut -f
+		fi
+	fi
+fi
+
 %clean
 rm -rf $RPM_BUILD_ROOT
-
-%post
-# REDHAT-DISCLAIMER on u-code updates
-# send the message to syslog, so it gets recorded on /var/log
-if [ -e /usr/bin/logger ]; then
-	/usr/bin/logger -p syslog.notice -t DISCLAIMER -f %{fwdir}/REDHAT-DISCLAIMER
-fi
-# also paste it over dmesg (some customers drop dmesg messages while
-# others keep them into /var/log for the later case, we'll have the
-# disclaimer recorded twice into system logs.
-if [ -e /usr/bin/cat ]; then
-	/usr/bin/cat %{fwdir}/REDHAT-DISCLAIMER > /dev/kmsg
-fi
-
 
 %files -n iwl100-firmware
 %defattr(-,root,root,-)
@@ -402,6 +396,31 @@ fi
 %doc WHENCE LICENCE.* LICENSE.*
 
 %changelog
+* Tue Oct 09 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180911-69.git85c5d90
+- liquidio: remove firmware that violates GPL license (rhbz 1637696)
+
+* Tue Sep 11 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180911-68.git85c5d90
+- Update to latest upstream linux-firmware image for assorted updates
+- nvidia: update firmware for Pascal GPUs (rhbz 1625514)
+
+* Tue Jul 17 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180717-67.git8d69bab
+- Update to latest upstream linux-firmware image for assorted netdrv updates
+- chelsio: update firmware to revision 1.20.8.0 (rhbz 1523202)
+
+* Mon Jun 25 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180529-66.git7518922
+- Only update initrd when the package is being updated (rhbz 1584178)
+
+* Tue May 29 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180529-65.git7518922
+- Update to latest upstream linux-firmware image for assorted updates
+- amd: update microcode for family 15h (rhbz 1574575)
+
+* Tue May 22 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180518-64.git2a9b2cf
+- Add early initramfs update in case of AMD host (rhbz 1580584)
+
+* Fri May 18 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> - 20180518-63.git2a9b2cf
+- Update to latest upstream linux-firmware image for assorted netdrv updates
+- amd: add microcode for family 17h and update for family 15h (rhbz 1574575)
+
 * Tue Feb 20 2018 Rafael Aquini <aquini@redhat.com> - 20180220-62.git6d51311
 - nfp: NIC stops transmitting for small MSS values when TSO is enabled (rhbz 1542263)
 - chelsio: pull in latests firmware 1.17.14.0 (rhbz 1538590)
