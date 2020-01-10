@@ -1,6 +1,5 @@
 %global checkout 6d51311
-%global zrelease 2
-%global firmware_release 62.%{zrelease}
+%global firmware_release 62
 
 Name:		linux-firmware
 Version:	20180220
@@ -10,12 +9,8 @@ Summary:	Firmware files used by the Linux kernel
 Group:		System Environment/Kernel
 License:	GPL+ and GPLv2+ and MIT and Redistributable, no modification permitted
 URL:		https://git.kernel.org/cgit/linux/kernel/git/firmware/linux-firmware.git/
-# Source0 for zstream must be different from the ystream {version} only by the
-# files requested for update and the additional {zrelease} suffix. The easiest
-# way I found so far was to basically cherry-pick the changes made by the 
-# specific commit and manually copy/paste on the Source0 ystream {version} and
-# then repackaging it.
-Source0:	%{name}-%{version}.%{zrelease}.tar.gz
+# Source0 creation: "git archive --format=tar [gitid] | gzip > [srcdir]/%{name}-%{version}.tar.gz"
+Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildArch:	noarch
 Provides:	kernel-firmware = %{version} xorg-x11-drv-ati-firmware = 7.0
@@ -35,6 +30,10 @@ Obsoletes:	libertas-usb8388-firmware
 Obsoletes:	libertas-sd8686-firmware
 Obsoletes:	libertas-sd8787-firmware
 Obsoletes: 	libertas-usb8388-olpc-firmware
+
+# REDHAT-DISCLAIMER on u-code updates (rhbz 1533945)
+Requires(post): coreutils
+Source1: REDHAT-DISCLAIMER
 
 %define fwdir /usr/lib/firmware
 %define _binaries_in_noarch_packages_terminate_build   0
@@ -263,6 +262,9 @@ rm -rf vxge
 # Remove the check_whence.py file
 rm -f check_whence.py
 
+# REDHAT-DISCLAIMER on u-code updates
+install %{SOURCE1} ./
+
 %install
 rm -rf $RPM_BUILD_ROOT
 mkdir -p $RPM_BUILD_ROOT%{fwdir}
@@ -284,6 +286,20 @@ sed -e 's/^/%%dir /' linux-firmware.dirs >> linux-firmware.files
 
 %clean
 rm -rf $RPM_BUILD_ROOT
+
+%post
+# REDHAT-DISCLAIMER on u-code updates
+# send the message to syslog, so it gets recorded on /var/log
+if [ -e /usr/bin/logger ]; then
+	/usr/bin/logger -p syslog.notice -t DISCLAIMER -f %{fwdir}/REDHAT-DISCLAIMER
+fi
+# also paste it over dmesg (some customers drop dmesg messages while
+# others keep them into /var/log for the later case, we'll have the
+# disclaimer recorded twice into system logs.
+if [ -e /usr/bin/cat ]; then
+	/usr/bin/cat %{fwdir}/REDHAT-DISCLAIMER > /dev/kmsg
+fi
+
 
 %files -n iwl100-firmware
 %defattr(-,root,root,-)
@@ -386,12 +402,6 @@ rm -rf $RPM_BUILD_ROOT
 %doc WHENCE LICENCE.* LICENSE.*
 
 %changelog
-* Wed Jun 06 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> 20180220-62.2.git6d51311
-- amd: update microcode for family 15h v2018-05-24 (rhbz 1585939)
-
-* Tue May 22 2018 Bruno E. O. Meneguele <bmeneg@redhat.com> 20180220-62.1.git6d51311
-- amd: add microcode for family 17h and update for family 15h (rhbz 1576321)
-
 * Tue Feb 20 2018 Rafael Aquini <aquini@redhat.com> - 20180220-62.git6d51311
 - nfp: NIC stops transmitting for small MSS values when TSO is enabled (rhbz 1542263)
 - chelsio: pull in latests firmware 1.17.14.0 (rhbz 1538590)
